@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Offloading Setting"
+        android:layout_centerHorizontal="true"
+        android:textSize="20dp"
+        android:id="@+id/offloading_setting_title"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/status_btn"
+        android:text="ON"
+        android:layout_below="@id/offloading_setting_title"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your Coins: "
+        android:layout_toRightOf="@id/status_btn"
+        android:layout_alignBottom="@id/status_btn"
+        android:id="@+id/coin_text"
+        />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:id="@+id/coin"
+        android:layout_toRightOf="@id/coin_text"
+        android:layout_alignBottom="@id/coin_text"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sharing Bounds"
+        android:id="@+id/sharing_bounds"
+        android:layout_below="@id/status_btn"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Statistics"
+        android:layout_below="@id/sharing_bounds"
+        android:id="@+id/statistics"
+        android:layout_centerHorizontal="true"/>
+
+</RelativeLayout>

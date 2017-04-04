@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Statistics"
+        android:layout_centerHorizontal="true"
+        android:textSize="20sp"
+        android:id="@+id/statistics_title"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Current Coins"
+        android:id="@+id/current_coins_text"
+        android:layout_below="@id/statistics_title"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:id="@+id/current_coins"
+        android:layout_below="@id/statistics_title"
+        android:layout_toRightOf="@id/current_coins_text"
+        android:layout_alignParentRight="true"
+        android:gravity="right"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Total Spent Coins"
+        android:id="@+id/total_spent_coins_text"
+        android:layout_below="@id/current_coins_text"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:id="@+id/total_spent_coins"
+        android:layout_below="@id/current_coins"
+        android:layout_toRightOf="@id/total_spent_coins_text"
+        android:layout_alignParentRight="true"
+        android:gravity="right"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Total Earn Coins"
+        android:id="@+id/total_earn_coins_text"
+        android:layout_below="@id/total_spent_coins_text"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:id="@+id/total_earn_coins"
+        android:layout_below="@id/total_spent_coins"
+        android:layout_toRightOf="@id/total_earn_coins_text"
+        android:layout_alignParentRight="true"
+        android:gravity="right"/>
+
+
+</RelativeLayout>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sharing Bounds"
+        android:layout_centerHorizontal="true"
+        android:textSize="20sp"
+        android:id="@+id/sharing_bounds_title"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RESOURCES"
+        android:layout_centerHorizontal="true"
+        android:textSize="15sp"
+        android:id="@+id/resources_title"
+        android:layout_below="@id/sharing_bounds_title"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CPU share(%): "
+        android:layout_below="@id/resources_title"
+        android:id="@+id/cpu_text" />
+    <SeekBar
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/cpu_share"
+        android:layout_alignBottom="@id/cpu_text"
+        android:layout_toRightOf="@id/cpu_text" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/cpu"
+        android:text="0"
+        android:layout_toRightOf="@id/cpu_share"
+        android:layout_alignBottom="@id/cpu_share"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Memory share(%): "
+        android:layout_below="@id/cpu_text"
+        android:id="@+id/memory_text" />
+    <SeekBar
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/memory_share"
+        android:layout_alignBottom="@id/memory_text"
+        android:layout_toRightOf="@id/memory_text" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/memory"
+        android:text="0"
+        android:layout_toRightOf="@id/memory_share"
+        android:layout_alignBottom="@+id/memory_share"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BOUNDS"
+        android:layout_centerHorizontal="true"
+        android:textSize="15sp"
+        android:id="@+id/bounds_title"
+        android:layout_below="@id/memory_text"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CPU Bound(%): "
+        android:layout_below="@id/bounds_title"
+        android:id="@+id/cpu_bound_text" />
+    <SeekBar
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/cpu_bound_seekbar"
+        android:layout_alignBottom="@id/cpu_bound_text"
+        android:layout_toRightOf="@id/cpu_bound_text" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/cpu_bound"
+        android:text="0"
+        android:layout_toRightOf="@id/cpu_bound_seekbar"
+        android:layout_alignBottom="@+id/cpu_bound_seekbar"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Memory Bound(%): "
+        android:layout_below="@id/cpu_bound_text"
+        android:paddingTop="10dp"
+        android:id="@+id/memory_bound_text"/>
+    <SeekBar
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/memory_bound_text"
+        android:layout_alignBottom="@id/memory_bound_text"
+        android:id="@+id/memory_bound_seekbar"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/memory_bound"
+        android:text="0"
+        android:layout_toRightOf="@id/memory_bound_seekbar"
+        android:layout_alignBottom="@id/memory_bound_seekbar"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Battery Bound(%): "
+        android:id="@+id/battery_bound_text"
+        android:layout_below="@id/memory_bound_text"
+        android:paddingTop="10dp"/>
+    <SeekBar
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/battery_bound_seekbar"
+        android:layout_alignBottom="@id/battery_bound_text"
+        android:layout_toRightOf="@id/battery_bound_text"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/battery_bound"
+        android:text="0"
+        android:layout_toRightOf="@id/battery_bound_seekbar"
+        android:layout_alignBottom="@id/battery_bound_seekbar"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Max budget Bound: "
+        android:id="@+id/maxbudget_bound_text"
+        android:layout_below="@id/battery_bound_text"
+        android:paddingTop="10dp"/>
+    <SeekBar
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/maxbudget_bound_seekbar"
+        android:layout_alignBottom="@id/maxbudget_bound_text"
+        android:layout_toRightOf="@id/maxbudget_bound_text"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/maxbudget_bound"
+        android:text="0"
+        android:layout_toRightOf="@id/maxbudget_bound_seekbar"
+        android:layout_alignBottom="@id/maxbudget_bound_seekbar"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Update"
+        android:id="@+id/update_bounds_btn"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>

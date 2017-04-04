@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">FaceApp</string>
+    <string name="EMPTY_PICTURE">Long click to load a picture</string>
+    <string name="load">load</string>
+    <string name="property">property</string>
+    <string name="detect">detect</string>
+    <string name="search">search for peers</string>
+    <string name="device_name">here the name of the current device should be shown</string>
+    <string name="up_btn">go up a directory</string>
+    <string name="path">here the path of current directory should be shown</string>
+    <string name="search_btn">Search For Peers</string>
+    <string name="send">send image</string>
+    <string name="off_setting">offloading setting</string>
+    <string name="connection_status">Here status of the connection should be shown</string>
+    <string name="list">Show Peer List</string>
+</resources>
