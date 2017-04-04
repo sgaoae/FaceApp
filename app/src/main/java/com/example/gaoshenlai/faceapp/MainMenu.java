@@ -142,6 +142,7 @@ public class MainMenu extends AppCompatActivity {
                 case R.id.test_btn1:
                     Log.d(EXPERIMENT_LOG,"REQUESTBATTERY:|"+System.currentTimeMillis());
                     mP2pListener.sendString("REQUESTBATTERY:");
+                    mP2pThread.clearBatteryInfo();
                     break;
                 case R.id.test_btn2:
                     /*Log.d(EXPERIMENT_LOG,"TRANSFERFILE:|"+System.currentTimeMillis());
@@ -170,6 +171,7 @@ public class MainMenu extends AppCompatActivity {
     IntentFilter mIntentFilter;
     WiFiP2pListener mP2pListener;
     WiFiP2pServerThread mP2pThread;
+    ConnectedPeerInfo peerInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -203,9 +205,10 @@ public class MainMenu extends AppCompatActivity {
         face = (ImageView) findViewById(R.id.face_image);
         imagevieweffecthelper.addZoomEffect(face);
 
+        peerInfo = new ConnectedPeerInfo();
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mP2pListener = new WiFiP2pListener(mManager,mChannel,this);
+        mP2pListener = new WiFiP2pListener(mManager,mChannel,this,peerInfo);
         mReceiver = new WiFiP2pDirectBroadcastReceiver(mManager, mChannel, this,mP2pListener);
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -213,7 +216,7 @@ public class MainMenu extends AppCompatActivity {
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        mP2pThread = new WiFiP2pServerThread(getApplicationContext(),mP2pListener);
+        mP2pThread = new WiFiP2pServerThread(this,peerInfo);
         mP2pThread.start();
 
         ListView p_list = (ListView) findViewById(R.id.peer_list);

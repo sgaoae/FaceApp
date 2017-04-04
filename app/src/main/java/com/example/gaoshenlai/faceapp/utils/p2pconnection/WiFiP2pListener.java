@@ -34,20 +34,17 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
     WifiP2pManager manager;
     WifiP2pManager.Channel channel;
     AppCompatActivity activity;
-
-    HashMap<String,String> map = new HashMap<>();
-    public void updateDeviceIPMap(String deviceAddress,String deviceIP){
-        map.put(deviceAddress,deviceIP);
-    }
-    public void clearDeviceIPMap(){map.clear();}
+    ConnectedPeerInfo peerInfo;
 
     public WiFiP2pListener
             (WifiP2pManager manager,
                     WifiP2pManager.Channel channel,
-                    AppCompatActivity activity){
+                    AppCompatActivity activity,
+             ConnectedPeerInfo peerInfo){
         this.manager=manager;
         this.channel=channel;
         this.activity=activity;
+        this.peerInfo=peerInfo;
     }
 
     ArrayList<WifiP2pDevice> devices = new ArrayList<WifiP2pDevice>();
@@ -121,7 +118,7 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
                         String currentIP,currentDevice;
                         currentIP = info.groupOwnerAddress.getHostAddress();
                         currentDevice = info.groupOwnerAddress.getHostName();
-                        updateDeviceIPMap(currentDevice,currentIP);
+                        peerInfo.addConnectedPeer(currentDevice,currentIP);
                         Intent intent = new Intent(activity,WiFiP2pDataTransfer.class);
                         intent.setAction(WiFiP2pDataTransfer.ACTION_SEND_IP);
                         intent.putExtra(WiFiP2pDataTransfer.EXTRAS_IP_ADDRESS,currentIP);
@@ -140,13 +137,14 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
             Log.d(DEBUG_LOG,"no imageFilePath cannot sendImageFile()");
             return;
         }
-        if(map.size()==0){
+        if(peerInfo.size()==0){
             Log.d(DEBUG_LOG,"no target IP address cannot sendImageFile()");
             return;
         }
         Log.d(DEBUG_LOG,"Image sent: "+path);
-        for(String key:map.keySet()){
-            String IP = map.get(key);
+        ArrayList<String> ips = peerInfo.getAllIP();
+        for(int i=0;i<ips.size();++i){
+            String IP = ips.get(i);
             Intent intent = new Intent(activity,WiFiP2pDataTransfer.class);
             intent.setAction(WiFiP2pDataTransfer.ACTION_SEND_FILE);
             intent.putExtra(WiFiP2pDataTransfer.EXTRAS_IP_ADDRESS,IP);
@@ -159,13 +157,14 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
     }
 
     public void sendString(String str){
-        if(map.size()==0){
+        if(peerInfo.size()==0){
             Log.d(DEBUG_LOG,"no target IP address cannot sendString()");
             return;
         }
         Log.d(DEBUG_LOG,"String sent: "+str);
-        for(String key:map.keySet()){
-            String IP = map.get(key);
+        ArrayList<String> ips = peerInfo.getAllIP();
+        for(int i=0;i<ips.size();++i){
+            String IP = ips.get(i);
             Intent intent = new Intent(activity,WiFiP2pDataTransfer.class);
             intent.setAction(WiFiP2pDataTransfer.ACTION_SEND_STRING);
             intent.putExtra(WiFiP2pDataTransfer.EXTRAS_IP_ADDRESS,IP);

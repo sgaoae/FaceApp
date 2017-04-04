@@ -8,7 +8,9 @@ import android.graphics.Bitmap;
 import android.media.FaceDetector;
 import android.os.BatteryManager;
 import android.os.Environment;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.gaoshenlai.faceapp.MainMenu;
 import com.example.gaoshenlai.faceapp.utils.imageviewhelper.bitmaphelper;
@@ -21,6 +23,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.crypto.spec.DESedeKeySpec;
 
@@ -31,12 +36,14 @@ import static android.content.Context.BATTERY_SERVICE;
  */
 
 public class WiFiP2pServerThread extends Thread {
-    public WiFiP2pServerThread(Context context,WiFiP2pListener listener){
-        this.context = context;
-        this.listener = listener;
+    public WiFiP2pServerThread(AppCompatActivity activity, ConnectedPeerInfo peerInfo){
+        this.activity = activity;
+        this.context = activity.getApplicationContext();
+        this.peerInfo = peerInfo;
     }
+    AppCompatActivity activity;
     Context context;
-    WiFiP2pListener listener;
+    ConnectedPeerInfo peerInfo;
 
     public static String DEBUG_LOG = "FaceAppDebugLog";
     String folderName = "FaceApp";
@@ -49,6 +56,41 @@ public class WiFiP2pServerThread extends Thread {
     String IP;
     String device;
 
+    HashMap<String, Integer> ipbatt = new HashMap<>();
+    public void clearBatteryInfo(){
+        ipbatt.clear();
+    }
+    private void determineWinner(){
+        ArrayList<String> winners = new ArrayList<>();
+        Integer max_bat=0;
+        Double average=0.0;
+        for(String ip:ipbatt.keySet()){
+            Integer bat = ipbatt.get(ip);
+            if(max_bat<bat){
+                max_bat=bat;
+                winners.clear();
+                winners.add(ip);
+            }else if(max_bat==bat){
+                winners.add(ip);
+            }else{
+                // ignore
+            }
+            average+=bat;
+        }
+        average/=ipbatt.size();
+        Log.d(MainMenu.EXPERIMENT_LOG,"The average is: "+average);
+        for(int i=0;i<winners.size();++i){
+            sendStringTo("BATTERYRESULT:You are winner!",winners.get(i));
+            Log.d(MainMenu.EXPERIMENT_LOG, winners.get(i)+" is winner");
+            ipbatt.remove(winners.get(i));
+        }
+        for(String ip:ipbatt.keySet()){
+            sendStringTo("BATTERYRESULT:You lose",ip);
+            Log.d(MainMenu.EXPERIMENT_LOG, ip+" lose");
+        }
+        clearBatteryInfo();
+    }
+
     @Override
     public void run() {
         while(status){
@@ -56,6 +98,7 @@ public class WiFiP2pServerThread extends Thread {
             try{
                 ServerSocket serverSocket = new ServerSocket(WiFiP2pDataTransfer.PORT);
                 Socket client = serverSocket.accept();
+
                 Log.d(DEBUG_LOG,"WiFiP2pthread: Data Received");
                 InputStream inputstream = client.getInputStream();
                 byte data_type[] = new byte[1];
@@ -73,28 +116,46 @@ public class WiFiP2pServerThread extends Thread {
                     serverSocket.close();
                     Log.d(DEBUG_LOG, "File received: " + f.getAbsolutePath());
 
-                    listener.sendString("REPLYFILE:recieved "+f.getAbsolutePath());
+                    sendString("REPLYFILE:recieved "+f.getAbsolutePath());
 
                 }else if(data_type[0]==WiFiP2pDataTransfer.IP_DATA){
                     IP = client.getInetAddress().getHostAddress();
                     Log.d(DEBUG_LOG,"WiFiP2pthread: IP Address obtained, IP: "+IP);
                     device = client.getInetAddress().getHostName();
-                    listener.updateDeviceIPMap(device,IP);
+                    peerInfo.addConnectedPeer(device,IP);
 
                 }else if(data_type[0]==WiFiP2pDataTransfer.STRING_DATA){
                     DataInputStream stream = new DataInputStream(inputstream);
                     String data = stream.readUTF();
 
+                    Log.d(MainMenu.EXPERIMENT_LOG, data+"|"+System.currentTimeMillis());
+
                     if(data.startsWith("REQUESTBATTERY:")){
+                        String ip = client.getInetAddress().getHostAddress();
                         int batLevel = getBatteryPercentage(context);
                         String bat = Integer.toString(batLevel);
                         bat = "REPLYBATTERY:"+bat;
-                        listener.sendString(bat);
+                        sendStringTo(bat,ip);
                     }else if(data.startsWith("REPLYBATTERY:")){
-                        Log.d(MainMenu.EXPERIMENT_LOG, data+"|"+System.currentTimeMillis());
+
+                        String ip = client.getInetAddress().getHostAddress();
+                        Integer batt = Integer.valueOf(data.replace("REPLYBATTERY:",""));
+                        ipbatt.put(ip,batt);
+                        if(ipbatt.size()==peerInfo.size()){
+                            determineWinner();
+                        }
+                    }else if(data.startsWith("BATTERYRESULT:")) {
+                        final String msg = data.replace("BATTERYRESULT:","");
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(context,msg,Toast.LENGTH_SHORT).show();
+                            }
+                        });
                     }else if(data.startsWith("REPLYFILE:")){
-                        Log.d(MainMenu.EXPERIMENT_LOG, data+"|"+System.currentTimeMillis());
+
                     }
+
 
                 }else{
                     Log.d(DEBUG_LOG,"WiFiP2pthread: unrecognized data: "+data_type[0]);
@@ -124,7 +185,6 @@ public class WiFiP2pServerThread extends Thread {
         return (int) (batteryPct * 100);
     }
 
-
     public static boolean copyFile(InputStream inputStream, OutputStream out) {
         byte buf[] = new byte[1024];
         int len;
@@ -142,5 +202,22 @@ public class WiFiP2pServerThread extends Thread {
             return false;
         }
         return true;
+    }
+
+    private void sendString(String str){
+        ArrayList<String> ips = peerInfo.getAllIP();
+        for(int i=0;i<ips.size();++i){
+            String IP = ips.get(i);
+            sendStringTo(str,IP);
+        }
+    }
+
+    private void sendStringTo(String str, String ip){
+        Intent intent = new Intent(context,WiFiP2pDataTransfer.class);
+        intent.setAction(WiFiP2pDataTransfer.ACTION_SEND_STRING);
+        intent.putExtra(WiFiP2pDataTransfer.EXTRAS_IP_ADDRESS,ip);
+        intent.putExtra(WiFiP2pDataTransfer.EXTRAS_PORT,WiFiP2pDataTransfer.PORT);
+        intent.putExtra(WiFiP2pDataTransfer.EXTRAS_STRING_DATA,str);
+        context.startService(intent);
     }
 }
