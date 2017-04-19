@@ -34,7 +34,7 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
     WifiP2pManager manager;
     WifiP2pManager.Channel channel;
     AppCompatActivity activity;
-    ConnectedPeerInfo peerInfo;
+    public ConnectedPeerInfo peerInfo;
 
     public WiFiP2pListener
             (WifiP2pManager manager,
@@ -89,7 +89,7 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
 
     public void connect(String deviceAddress,final String deviceName){
             WifiP2pConfig config = new WifiP2pConfig();
-            config.groupOwnerIntent = 15;
+            config.groupOwnerIntent = 0;
             config.deviceAddress = deviceAddress;
             config.wps.setup = WpsInfo.PBC;
             manager.connect(channel, config, new WifiP2pManager.ActionListener() {
@@ -132,7 +132,7 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
         }
     }
 
-    public void sendImageFile(String path){
+    public void sendImageFile(String path,byte action_type){
         if(path==null || path.equals("")){
             Log.d(DEBUG_LOG,"no imageFilePath cannot sendImageFile()");
             return;
@@ -150,6 +150,7 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
             intent.putExtra(WiFiP2pDataTransfer.EXTRAS_IP_ADDRESS,IP);
             intent.putExtra(WiFiP2pDataTransfer.EXTRAS_PORT,WiFiP2pDataTransfer.PORT);
             intent.putExtra(WiFiP2pDataTransfer.EXTRAS_FILE_PATH,path);
+            intent.putExtra(WiFiP2pDataTransfer.EXTRAS_FILE_ACTION,action_type);
             activity.startService(intent);
             Log.d(DEBUG_LOG,"Target IP:  "+IP);
         }

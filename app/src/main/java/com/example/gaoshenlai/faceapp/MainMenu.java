@@ -108,7 +108,8 @@ public class MainMenu extends AppCompatActivity {
                     break;
                 case R.id.send_btn:
                     Log.d(DEBUG_LOG,"sendImageFile is pressed");
-                    mP2pListener.sendImageFile(imageFilePath);
+                    mP2pThread.setOffloadingFaceDetectionBeginTime(System.currentTimeMillis());
+                    mP2pListener.sendImageFile(imageFilePath,WiFiP2pDataTransfer.FILE_ACTION_DETECT);
                     break;
                 case R.id.off_setting_btn:
                     Intent intent = new Intent(MainMenu.this, setting_menu.class);
@@ -140,14 +141,19 @@ public class MainMenu extends AppCompatActivity {
                     break;
 
                 case R.id.test_btn1:
-                    Log.d(EXPERIMENT_LOG,"REQUESTBATTERY:|"+System.currentTimeMillis());
-                    mP2pListener.sendString("REQUESTBATTERY:");
+                    long t = System.currentTimeMillis();
+                    //Log.d(EXPERIMENT_LOG,"REQUESTBATTERY:|"+t);
+                    mP2pThread.setBatteryTestBeginTime(t);
                     mP2pThread.clearBatteryInfo();
+                    mP2pListener.sendString("REQUESTBATTERY:");
                     break;
                 case R.id.test_btn2:
-                    /*Log.d(EXPERIMENT_LOG,"TRANSFERFILE:|"+System.currentTimeMillis());
+                    Log.d(EXPERIMENT_LOG,"TRANSFERFILE:|"+System.currentTimeMillis());
                     String path = Environment.getExternalStorageDirectory()+"/FaceApp/test_10MB.jpg";
-                    mP2pListener.sendImageFile(path);*/
+
+                    mP2pThread.setFileTransferBeginTime(System.currentTimeMillis());
+                    mP2pThread.clearFileTransferInfo();
+                    mP2pListener.sendImageFile(path,WiFiP2pDataTransfer.FILE_ACTION_NORMAL);
                     break;
             }
         }

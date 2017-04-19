@@ -5,15 +5,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.PointF;
 import android.media.FaceDetector;
+import android.media.Image;
 import android.os.BatteryManager;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.example.gaoshenlai.faceapp.MainMenu;
 import com.example.gaoshenlai.faceapp.utils.imageviewhelper.bitmaphelper;
+import com.example.gaoshenlai.faceapp.utils.imageviewhelper.imagevieweffecthelper;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -26,6 +30,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
+import com.example.gaoshenlai.faceapp.R;
 
 import javax.crypto.spec.DESedeKeySpec;
 
@@ -61,6 +67,7 @@ public class WiFiP2pServerThread extends Thread {
         ipbatt.clear();
     }
     private void determineWinner(){
+        Log.d(MainMenu.EXPERIMENT_LOG,"battery test time: "+(System.currentTimeMillis()-batteryTestBeginTime));
         ArrayList<String> winners = new ArrayList<>();
         Integer max_bat=0;
         Double average=0.0;
@@ -78,15 +85,15 @@ public class WiFiP2pServerThread extends Thread {
             average+=bat;
         }
         average/=ipbatt.size();
-        Log.d(MainMenu.EXPERIMENT_LOG,"The average is: "+average);
+        //Log.d(MainMenu.EXPERIMENT_LOG,"The average is: "+average);
         for(int i=0;i<winners.size();++i){
             sendStringTo("BATTERYRESULT:You are winner!",winners.get(i));
-            Log.d(MainMenu.EXPERIMENT_LOG, winners.get(i)+" is winner");
+            //Log.d(MainMenu.EXPERIMENT_LOG, winners.get(i)+" is winner");
             ipbatt.remove(winners.get(i));
         }
         for(String ip:ipbatt.keySet()){
             sendStringTo("BATTERYRESULT:You lose",ip);
-            Log.d(MainMenu.EXPERIMENT_LOG, ip+" lose");
+            //Log.d(MainMenu.EXPERIMENT_LOG, ip+" lose");
         }
         clearBatteryInfo();
     }
@@ -104,19 +111,63 @@ public class WiFiP2pServerThread extends Thread {
                 byte data_type[] = new byte[1];
                 inputstream.read(data_type,0,1);
                 if(data_type[0]==WiFiP2pDataTransfer.FILE_DATA) {
-                    Log.d(DEBUG_LOG,"WiFiP2pthread: File Received");
+                    Log.d(DEBUG_LOG,"WiFiP2pthread: File_data");
                     final File f = new File(Environment.getExternalStorageDirectory() + "/"
                             + folderName + "/wifip2pshared-" + System.currentTimeMillis()
                             + ".jpg");
                     File dirs = new File(f.getParent());
-                    if (!dirs.exists()) dirs.mkdirs();
-                    f.createNewFile();
+                    if (!dirs.exists()) {
+                        if(dirs.mkdirs()){
+                            Log.d(DEBUG_LOG,"succeed to make dir");
+                        }else{
+                            Log.d(DEBUG_LOG,"fail to make dir");
+                        }
+                    }
+                    if(f.createNewFile()){
+                        Log.d(DEBUG_LOG,"succeed in creating file");
+                    }else{
+                        Log.d(DEBUG_LOG,"fail to create new file");
+                    }
+                    Log.d(DEBUG_LOG,"WiFiP2pthread: File_prepare");
+                    byte action[] = new byte[1];
+                    inputstream.read(action);
+                    Log.d(DEBUG_LOG,"getFileAction "+action[0]);
 
                     copyFile(inputstream, new FileOutputStream(f));
                     serverSocket.close();
                     Log.d(DEBUG_LOG, "File received: " + f.getAbsolutePath());
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(context,"File Received",Toast.LENGTH_SHORT).show();
+                        }
+                    });
 
-                    sendString("REPLYFILE:recieved "+f.getAbsolutePath());
+                    String ip = client.getInetAddress().getHostAddress();
+
+                    if(action[0]==WiFiP2pDataTransfer.FILE_ACTION_NORMAL){
+                        Log.d(DEBUG_LOG,"File Action Normal");
+                        sendStringTo("REPLYFILE:recieved "+f.getAbsolutePath(),ip);
+                    }else if(action[0]==WiFiP2pDataTransfer.FILE_ACTION_DETECT){
+                        Log.d(DEBUG_LOG,"File Action Face Detection");
+                        Bitmap bitmap = bitmaphelper.getProperBitmap(f.getAbsolutePath());
+                        if(bitmap!=null) {
+                            FaceDetector detector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 10);
+                            FaceDetector.Face[] faces = new FaceDetector.Face[10];
+                            int num = detector.findFaces(bitmap,faces);
+                            String msg = "REPLYFACE:";
+                            for(int i=0;i<num;++i){
+                                FaceDetector.Face face = faces[i];
+                                PointF p = new PointF();
+                                face.getMidPoint(p);
+                                float eyeD = face.eyesDistance();
+                                msg += "x:"+p.x+";"+"y:"+p.y+";"+"eyeDistance:"+eyeD+";"+"|||";
+                            }
+                            sendStringTo(msg,ip);
+                        }
+                    }else{
+                        Log.d(DEBUG_LOG,"Action to be performed in this file is NOT recognized");
+                    }
 
                 }else if(data_type[0]==WiFiP2pDataTransfer.IP_DATA){
                     IP = client.getInetAddress().getHostAddress();
@@ -128,7 +179,7 @@ public class WiFiP2pServerThread extends Thread {
                     DataInputStream stream = new DataInputStream(inputstream);
                     String data = stream.readUTF();
 
-                    Log.d(MainMenu.EXPERIMENT_LOG, data+"|"+System.currentTimeMillis());
+                    Log.d(DEBUG_LOG, data+"|"+System.currentTimeMillis());
 
                     if(data.startsWith("REQUESTBATTERY:")){
                         String ip = client.getInetAddress().getHostAddress();
@@ -153,7 +204,49 @@ public class WiFiP2pServerThread extends Thread {
                             }
                         });
                     }else if(data.startsWith("REPLYFILE:")){
-
+                        Log.d(MainMenu.EXPERIMENT_LOG, data+"|"+System.currentTimeMillis());
+                        file.add(client.getInetAddress().getHostAddress());
+                        if(file.size()==peerInfo.size()){
+                            Log.d(MainMenu.EXPERIMENT_LOG,"File Transfer Time: "+(System.currentTimeMillis()-fileBeginTime));
+                        }
+                    }else if(data.startsWith("REPLYFACE:")){
+                        final String msg = data.replace("REPLYFACE:","");
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                StringTokenizer st = new StringTokenizer(msg,"|||");
+                                ArrayList<PointF> leftUp = new ArrayList<>();
+                                ArrayList<PointF> rightDown = new ArrayList<>();
+                                int num=0;
+                                while (st.hasMoreTokens()){
+                                    num++;
+                                    String it = st.nextToken();
+                                    float x=0,y=0,eyeDistance=0;
+                                    StringTokenizer st2  = new StringTokenizer(it,";");
+                                    while (st2.hasMoreTokens()){
+                                        String field = st2.nextToken();
+                                        if(field.startsWith("x:")){
+                                            x = Float.valueOf(field.replace("x:",""));
+                                        }else if(field.startsWith("y:")){
+                                            y = Float.valueOf(field.replace("y:",""));
+                                        }else if(field.startsWith("eyeDistance:")) {
+                                            eyeDistance = Float.valueOf(field.replace("eyeDistance:",""));
+                                        }
+                                    }
+                                    leftUp.add(new PointF(x-eyeDistance,y-eyeDistance));
+                                    rightDown.add(new PointF(x+eyeDistance,y+eyeDistance));
+                                }
+                                ImageView iv = (ImageView)activity.findViewById(R.id.face_image);
+                                PointF[] lu = new PointF[num];
+                                PointF[] rd = new PointF[num];
+                                for(int i=0;i<num;++i){
+                                    lu[i]=new PointF(leftUp.get(i).x,leftUp.get(i).y);
+                                    rd[i]=new PointF(rightDown.get(i).x,rightDown.get(i).y);
+                                }
+                                imagevieweffecthelper.highlightFaces(iv,lu,rd,num);
+                                Log.d(MainMenu.EXPERIMENT_LOG,"Offloading Face Detection Time: "+(System.currentTimeMillis()-offloadingFaceDetectionBeginTime));
+                            }
+                        });
                     }
 
 
@@ -165,9 +258,8 @@ public class WiFiP2pServerThread extends Thread {
                 if (client.isConnected()) client.close();
                 if (!serverSocket.isClosed()) serverSocket.close();
 
-            }catch (Exception e){
-                //Log.d(DEBUG_LOG,"WiFiP2pthread: Exception");
-                //e.printStackTrace();
+            }catch (IOException e){
+                //Log.d(DEBUG_LOG,"WiFiP2pthread: IOException");
             }
         }
     }
@@ -219,5 +311,23 @@ public class WiFiP2pServerThread extends Thread {
         intent.putExtra(WiFiP2pDataTransfer.EXTRAS_PORT,WiFiP2pDataTransfer.PORT);
         intent.putExtra(WiFiP2pDataTransfer.EXTRAS_STRING_DATA,str);
         context.startService(intent);
+    }
+
+    long batteryTestBeginTime;
+    public void setBatteryTestBeginTime(long t){
+        batteryTestBeginTime=t;
+    }
+    long fileBeginTime;
+    public void setFileTransferBeginTime(long t){
+        fileBeginTime=t;
+    }
+    ArrayList<String> file = new ArrayList<>();
+    public void clearFileTransferInfo(){
+        file.clear();
+    }
+
+    long offloadingFaceDetectionBeginTime;
+    public void setOffloadingFaceDetectionBeginTime(long t){
+        offloadingFaceDetectionBeginTime=t;
     }
 }

@@ -32,12 +32,16 @@ public class WiFiP2pDataTransfer extends IntentService {
     public static final String EXTRAS_IP_ADDRESS = "go_host";
     public static final String EXTRAS_PORT = "go_port";
     public static final String EXTRAS_STRING_DATA = "string_data";
+    public static final String EXTRAS_FILE_ACTION = "file_action";
 
     public static int PORT = 6666;
 
     public static byte IP_DATA = 10;
     public static byte FILE_DATA = 20;
     public static byte STRING_DATA = 30;
+
+    public static byte FILE_ACTION_NORMAL = 21;
+    public static byte FILE_ACTION_DETECT = 22;
 
     public WiFiP2pDataTransfer(){
         super("WiFiP2pFileTransfer");
@@ -52,6 +56,7 @@ public class WiFiP2pDataTransfer extends IntentService {
             String host = intent.getExtras().getString(EXTRAS_IP_ADDRESS);
             Socket socket = new Socket();
             int port = intent.getExtras().getInt(EXTRAS_PORT);
+            byte action = intent.getExtras().getByte(EXTRAS_FILE_ACTION);
 
             try {
                 socket.bind(null);
@@ -64,6 +69,7 @@ public class WiFiP2pDataTransfer extends IntentService {
                 try {
                     is = cr.openInputStream(Uri.fromFile(new File(fileUri)));
                     stream.write(FILE_DATA);
+                    stream.write(action);
                     copyFile(is, stream);
                 } catch (FileNotFoundException e) {
                     Log.d(DEBUG_LOG,"WiFiP2pDataTransfer: FileNotFoundException Error");

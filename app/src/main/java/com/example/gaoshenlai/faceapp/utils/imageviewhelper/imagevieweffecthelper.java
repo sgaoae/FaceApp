@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+
 import com.example.gaoshenlai.faceapp.MainMenu;
 
 /**
@@ -100,6 +101,9 @@ public class imagevieweffecthelper {
             rightDown[i]=new PointF(temp.x+dis,temp.y+dis);
         }
 
+        highlightFaces(image,leftUp,rightDown,numOfFaces);
+    }
+    public static void highlightFaces(ImageView image,PointF[] leftUp,PointF[] rightDown,int numOfFaces){
         Bitmap bitmap = getBitmapFromImageView(image);
         Bitmap tempbitmap = Bitmap.createBitmap(bitmap.getWidth(),bitmap.getHeight(), Bitmap.Config.RGB_565);
 

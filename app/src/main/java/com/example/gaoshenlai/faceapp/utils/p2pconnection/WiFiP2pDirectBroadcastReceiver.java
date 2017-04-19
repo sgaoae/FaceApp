@@ -61,10 +61,10 @@ public class WiFiP2pDirectBroadcastReceiver extends BroadcastReceiver {
                 mManager.requestConnectionInfo(mChannel,p2pListener);
             } else if(
                     networkInfo.getDetailedState()== NetworkInfo.DetailedState.DISCONNECTED
-                    || networkInfo.getDetailedState()== NetworkInfo.DetailedState.DISCONNECTING
+                    //|| networkInfo.getDetailedState()== NetworkInfo.DetailedState.DISCONNECTING
                     ) {
                 // It's a disconnect
-                mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                /*mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
                         Toast.makeText(mActivity.getApplicationContext(),"It is a disconnect",Toast.LENGTH_SHORT).show();
@@ -75,6 +75,7 @@ public class WiFiP2pDirectBroadcastReceiver extends BroadcastReceiver {
 
                     }
                 });
+                p2pListener.peerInfo.clearAllConnectedPeers();*/
             }
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
             // Respond to this device's wifi state changing
