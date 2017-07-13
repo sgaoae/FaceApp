@@ -24,7 +24,7 @@ import java.net.SocketException;
 public class WiFiP2pDataTransfer extends IntentService {
     String DEBUG_LOG = "FaceAppDebugLog";
 
-    public static final int SOCKET_TIMEOUT = 5000;
+    public static final int SOCKET_TIMEOUT = 10000;
     public static final String ACTION_SEND_FILE = "com.example.gaoshenlai.faceapp.SEND_FILE";
     public static final String ACTION_SEND_IP = "com.example.gaoshenlai.faceapp.SEND_IP";
     public static final String ACTION_SEND_STRING = "com.example.gaoshenlai.faceapp.SEND_STRING";
@@ -60,9 +60,9 @@ public class WiFiP2pDataTransfer extends IntentService {
 
             try {
                 socket.bind(null);
-                Log.d(DEBUG_LOG,"WiFiP2pDataTransfer: Try to connect to transfer file");
+                //Log.d(DEBUG_LOG,"WiFiP2pDataTransfer: Try to connect to transfer file");
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
-                Log.d(DEBUG_LOG,"WiFiP2pDataTransfer: socket connected to transfer file");
+                //Log.d(DEBUG_LOG,"WiFiP2pDataTransfer: socket connected to transfer file");
                 OutputStream stream = socket.getOutputStream();
                 ContentResolver cr = context.getContentResolver();
                 InputStream is = null;
@@ -92,16 +92,16 @@ public class WiFiP2pDataTransfer extends IntentService {
             }
         }else if(intent.getAction().equals(ACTION_SEND_IP)){
             try {
-                Log.d(DEBUG_LOG,"begin to send IP address");
+                //Log.d(DEBUG_LOG,"begin to send IP address");
                 String host = intent.getExtras().getString(EXTRAS_IP_ADDRESS);
                 int port = intent.getExtras().getInt(EXTRAS_PORT);
                 Socket socket = new Socket();
                 DataOutputStream outputStream = null;
-                Log.d(DEBUG_LOG,"parameters prepared: host: "+host+" port: "+port);
+                //Log.d(DEBUG_LOG,"parameters prepared: host: "+host+" port: "+port);
                 //socket.setReuseAddress(true);
                 //Log.d(PC,"WiFiDeviceManager.onConnectionInfoAvailable: client reused address set to true");
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
-                Log.d(DEBUG_LOG,"socket isConnected():  "+socket.isConnected());
+                //Log.d(DEBUG_LOG,"socket isConnected():  "+socket.isConnected());
                 outputStream = new DataOutputStream(socket.getOutputStream());
                 outputStream.write(IP_DATA);
                 if (outputStream != null) {
@@ -122,19 +122,20 @@ public class WiFiP2pDataTransfer extends IntentService {
                 }
             }catch (SocketException e){
                 Log.d(DEBUG_LOG,"WiFiP2pDataTransfer.onHandleIntent.ACTION_SEND_IP: SocketException Error");
-                e.printStackTrace();
+                Log.d(DEBUG_LOG,e.toString());
             } catch (IOException e) {
                 Log.d(DEBUG_LOG,"WiFiP2pDataTransfer.onHandleIntent.ACTION_SEND_IP: IOException Error");
+                Log.d(DEBUG_LOG,e.toString());
             }
         }else if(intent.getAction().equals(ACTION_SEND_STRING)){
             try {
-                Log.d(DEBUG_LOG,"begin to send IP address");
+                //Log.d(DEBUG_LOG,"begin to send IP address");
                 String host = intent.getExtras().getString(EXTRAS_IP_ADDRESS);
                 int port = intent.getExtras().getInt(EXTRAS_PORT);
                 String data = intent.getExtras().getString(EXTRAS_STRING_DATA);
                 Socket socket = new Socket();
                 DataOutputStream outputStream = null;
-                Log.d(DEBUG_LOG,"parameters prepared: host: "+host+" port: "+port);
+                //Log.d(DEBUG_LOG,"parameters prepared: host: "+host+" port: "+port);
                 //socket.setReuseAddress(true);
                 //Log.d(PC,"WiFiDeviceManager.onConnectionInfoAvailable: client reused address set to true");
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
@@ -160,9 +161,10 @@ public class WiFiP2pDataTransfer extends IntentService {
                 }
             }catch (SocketException e){
                 Log.d(DEBUG_LOG,"WiFiP2pDataTransfer.onHandleIntent.ACTION_SEND_STRING: SocketException Error");
-                e.printStackTrace();
+                Log.d(DEBUG_LOG,e.toString());
             } catch (IOException e) {
                 Log.d(DEBUG_LOG,"WiFiP2pDataTransfer.onHandleIntent.ACTION_SEND_STRING: IOException Error");
+                Log.d(DEBUG_LOG,e.toString());
             }
         }
     }

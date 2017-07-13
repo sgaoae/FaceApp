@@ -30,6 +30,7 @@ import com.example.gaoshenlai.faceapp.utils.p2pconnection.*;
 import com.example.gaoshenlai.faceapp.offloading_setting.*;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class MainMenu extends AppCompatActivity {
     public static String EXPERIMENT_LOG = "FaceAppExperimentLog";
@@ -123,8 +124,9 @@ public class MainMenu extends AppCompatActivity {
                     layout_p.setVisibility(View.GONE);
                     break;
                 case R.id.search_btn:
+                    ((ListView)findViewById(R.id.peer_list)).setAdapter(null);
                     String name = (String) ((TextView) findViewById(R.id.device_name)).getText();
-                    Log.d(MainMenu.EXPERIMENT_LOG,name+"|scan begin: "+System.currentTimeMillis());
+                    mP2pListener.setScanBeginTime(System.currentTimeMillis());
                     if(mManager!=null){
                         mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
                             @Override
@@ -141,19 +143,68 @@ public class MainMenu extends AppCompatActivity {
                     break;
 
                 case R.id.test_btn1:
-                    long t = System.currentTimeMillis();
-                    //Log.d(EXPERIMENT_LOG,"REQUESTBATTERY:|"+t);
-                    mP2pThread.setBatteryTestBeginTime(t);
-                    mP2pThread.clearBatteryInfo();
-                    mP2pListener.sendString("REQUESTBATTERY:");
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainMenu.this);
+                    builder.setTitle("Choose A Test");
+                    CharSequence[] str = {
+                            "Battery Test","File test","ping pong","clear all received files",
+                            "offloading face detection"
+                    };
+                    builder.setItems(str, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                            switch (which){
+                                case 0:
+                                    long t = System.currentTimeMillis();
+                                    //Log.d(EXPERIMENT_LOG,"REQUESTBATTERY:|"+t);
+                                    mP2pThread.setBatteryTestBeginTime(t);
+                                    mP2pThread.clearBatteryInfo();
+                                    mP2pListener.sendString("REQUESTBATTERY:");
+                                    break;
+                                case 1:
+                                    Log.d(EXPERIMENT_LOG,"TRANSFERFILE:|"+System.currentTimeMillis());
+                                    String path = Environment.getExternalStorageDirectory()+"/FaceApp/test_10MB.jpg";
+
+                                    mP2pThread.setFileTransferBeginTime(System.currentTimeMillis());
+                                    mP2pThread.clearFileTransferInfo();
+                                    mP2pListener.sendImageFile(path,WiFiP2pDataTransfer.FILE_ACTION_NORMAL);
+                                    break;
+                                case 2:
+                                    long t1 = System.currentTimeMillis();
+                                    mP2pThread.beginPingpong(t1);
+                                    break;
+                                case 3:
+                                    File file = new File(Environment.getExternalStorageDirectory()+"/FaceApp");
+                                    if(file.exists()){
+                                        File[] receives = file.listFiles();
+                                        for(int i=0;i<receives.length;++i){
+                                            if(receives[i].getName().startsWith("wifip2pshared-")){
+                                                receives[i].delete();
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case 4:
+                                    // imageFilePath
+                                    if(imageFilePath==null || imageFilePath.contentEquals(""))return;
+                                    ArrayList<String> ips = peerInfo.getAllIP();
+                                    for(String ip:ips){
+                                        Intent sendImageFileForDetection = new Intent(MainMenu.this,WiFiP2pDataTransfer.class);
+                                        sendImageFileForDetection.setAction(WiFiP2pDataTransfer.ACTION_SEND_FILE);
+                                        sendImageFileForDetection.putExtra(WiFiP2pDataTransfer.EXTRAS_IP_ADDRESS,ip);
+                                        sendImageFileForDetection.putExtra(WiFiP2pDataTransfer.EXTRAS_PORT,WiFiP2pDataTransfer.PORT);
+                                        sendImageFileForDetection.putExtra(WiFiP2pDataTransfer.EXTRAS_FILE_PATH,imageFilePath);
+                                        sendImageFileForDetection.putExtra(WiFiP2pDataTransfer.EXTRAS_FILE_ACTION,WiFiP2pDataTransfer.FILE_ACTION_DETECT);
+                                        Log.d(EXPERIMENT_LOG,"Time: "+System.currentTimeMillis()+"&To: "+ip+":"+WiFiP2pDataTransfer.PORT+"&File: "+imageFilePath+"&File Size: "+new File(imageFilePath).length()/1024+" KB");
+                                        startService(sendImageFileForDetection);
+                                    }
+                                    break;
+                            }
+                        }
+                    });
+                    builder.create().show();
                     break;
                 case R.id.test_btn2:
-                    Log.d(EXPERIMENT_LOG,"TRANSFERFILE:|"+System.currentTimeMillis());
-                    String path = Environment.getExternalStorageDirectory()+"/FaceApp/test_10MB.jpg";
-
-                    mP2pThread.setFileTransferBeginTime(System.currentTimeMillis());
-                    mP2pThread.clearFileTransferInfo();
-                    mP2pListener.sendImageFile(path,WiFiP2pDataTransfer.FILE_ACTION_NORMAL);
                     break;
             }
         }

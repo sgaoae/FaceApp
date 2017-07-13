@@ -28,8 +28,10 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import com.example.gaoshenlai.faceapp.R;
 
@@ -102,164 +104,202 @@ public class WiFiP2pServerThread extends Thread {
     public void run() {
         while(status){
             //Log.d(DEBUG_LOG,"WiFiP2pServerThread is running");
-            try{
-                ServerSocket serverSocket = new ServerSocket(WiFiP2pDataTransfer.PORT);
-                Socket client = serverSocket.accept();
+            try {
+                    ServerSocket serverSocket = new ServerSocket(WiFiP2pDataTransfer.PORT);
+                            //Log.d(DEBUG_LOG, "WiFiP2pthread: Data Received")
+                            Socket client = serverSocket.accept();
+                            InputStream inputstream = client.getInputStream();
+                            byte data_type[] = new byte[1];
+                            inputstream.read(data_type, 0, 1);
+                            if (data_type[0] == WiFiP2pDataTransfer.FILE_DATA) {
+                                Log.d(DEBUG_LOG, "WiFiP2pthread: File_data");
+                                final File f = new File(Environment.getExternalStorageDirectory() + "/"
+                                        + folderName + "/wifip2pshared-" + System.currentTimeMillis()
+                                        + ".jpg");
+                                File dirs = new File(f.getParent());
+                                if (!dirs.exists()) {
+                                    if (dirs.mkdirs()) {
+                                        Log.d(DEBUG_LOG, "succeed to make dir");
+                                    } else {
+                                        Log.d(DEBUG_LOG, "fail to make dir");
+                                    }
+                                }
+                                if (f.createNewFile()) {
+                                    Log.d(DEBUG_LOG, "succeed in creating file");
+                                } else {
+                                    Log.d(DEBUG_LOG, "fail to create new file");
+                                }
+                                Log.d(DEBUG_LOG, "WiFiP2pthread: File_prepare");
+                                byte action[] = new byte[1];
+                                inputstream.read(action);
+                                Log.d(DEBUG_LOG, "getFileAction " + action[0]);
 
-                Log.d(DEBUG_LOG,"WiFiP2pthread: Data Received");
-                InputStream inputstream = client.getInputStream();
-                byte data_type[] = new byte[1];
-                inputstream.read(data_type,0,1);
-                if(data_type[0]==WiFiP2pDataTransfer.FILE_DATA) {
-                    Log.d(DEBUG_LOG,"WiFiP2pthread: File_data");
-                    final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                            + folderName + "/wifip2pshared-" + System.currentTimeMillis()
-                            + ".jpg");
-                    File dirs = new File(f.getParent());
-                    if (!dirs.exists()) {
-                        if(dirs.mkdirs()){
-                            Log.d(DEBUG_LOG,"succeed to make dir");
-                        }else{
-                            Log.d(DEBUG_LOG,"fail to make dir");
-                        }
-                    }
-                    if(f.createNewFile()){
-                        Log.d(DEBUG_LOG,"succeed in creating file");
-                    }else{
-                        Log.d(DEBUG_LOG,"fail to create new file");
-                    }
-                    Log.d(DEBUG_LOG,"WiFiP2pthread: File_prepare");
-                    byte action[] = new byte[1];
-                    inputstream.read(action);
-                    Log.d(DEBUG_LOG,"getFileAction "+action[0]);
+                                copyFile(inputstream, new FileOutputStream(f));
+                                serverSocket.close();
+                                Log.d(DEBUG_LOG, "File received: " + f.getAbsolutePath());
+                                activity.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toast.makeText(context, "File Received", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
 
-                    copyFile(inputstream, new FileOutputStream(f));
-                    serverSocket.close();
-                    Log.d(DEBUG_LOG, "File received: " + f.getAbsolutePath());
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(context,"File Received",Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                                String ip = client.getInetAddress().getHostAddress();
 
-                    String ip = client.getInetAddress().getHostAddress();
+                                if (action[0] == WiFiP2pDataTransfer.FILE_ACTION_NORMAL) {
+                                    Log.d(DEBUG_LOG, "File Action Normal");
+                                    sendStringTo("REPLYFILE:recieved " + f.getAbsolutePath(), ip);
+                                } else if (action[0] == WiFiP2pDataTransfer.FILE_ACTION_DETECT) {
+                                    Log.d(DEBUG_LOG, "File Action Face Detection");
+                                    Bitmap bitmap = bitmaphelper.getProperBitmap(f.getAbsolutePath());
+                                    if (bitmap != null) {
+                                        FaceDetector detector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 10);
+                                        FaceDetector.Face[] faces = new FaceDetector.Face[10];
+                                        int num = detector.findFaces(bitmap, faces);
+                                        String msg = "REPLYFACE:";
+                                        for (int i = 0; i < num; ++i) {
+                                            FaceDetector.Face face = faces[i];
+                                            PointF p = new PointF();
+                                            face.getMidPoint(p);
+                                            float eyeD = face.eyesDistance();
+                                            msg += "x:" + p.x + ";" + "y:" + p.y + ";" + "eyeDistance:" + eyeD + ";" + "|||";
+                                        }
+                                        sendStringTo(msg, ip);
+                                    }
+                                } else {
+                                    Log.d(DEBUG_LOG, "Action to be performed in this file is NOT recognized");
+                                }
 
-                    if(action[0]==WiFiP2pDataTransfer.FILE_ACTION_NORMAL){
-                        Log.d(DEBUG_LOG,"File Action Normal");
-                        sendStringTo("REPLYFILE:recieved "+f.getAbsolutePath(),ip);
-                    }else if(action[0]==WiFiP2pDataTransfer.FILE_ACTION_DETECT){
-                        Log.d(DEBUG_LOG,"File Action Face Detection");
-                        Bitmap bitmap = bitmaphelper.getProperBitmap(f.getAbsolutePath());
-                        if(bitmap!=null) {
-                            FaceDetector detector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 10);
-                            FaceDetector.Face[] faces = new FaceDetector.Face[10];
-                            int num = detector.findFaces(bitmap,faces);
-                            String msg = "REPLYFACE:";
-                            for(int i=0;i<num;++i){
-                                FaceDetector.Face face = faces[i];
-                                PointF p = new PointF();
-                                face.getMidPoint(p);
-                                float eyeD = face.eyesDistance();
-                                msg += "x:"+p.x+";"+"y:"+p.y+";"+"eyeDistance:"+eyeD+";"+"|||";
-                            }
-                            sendStringTo(msg,ip);
-                        }
-                    }else{
-                        Log.d(DEBUG_LOG,"Action to be performed in this file is NOT recognized");
-                    }
+                            } else if (data_type[0] == WiFiP2pDataTransfer.IP_DATA) {
+                                IP = client.getInetAddress().getHostAddress();
+                                Log.d(DEBUG_LOG, "WiFiP2pthread: IP Address obtained, IP: " + IP);
+                                device = client.getInetAddress().getHostName();
+                                peerInfo.addConnectedPeer(device, IP);
 
-                }else if(data_type[0]==WiFiP2pDataTransfer.IP_DATA){
-                    IP = client.getInetAddress().getHostAddress();
-                    Log.d(DEBUG_LOG,"WiFiP2pthread: IP Address obtained, IP: "+IP);
-                    device = client.getInetAddress().getHostName();
-                    peerInfo.addConnectedPeer(device,IP);
+                            } else if (data_type[0] == WiFiP2pDataTransfer.STRING_DATA) {
+                                DataInputStream stream = new DataInputStream(inputstream);
+                                String data = stream.readUTF();
 
-                }else if(data_type[0]==WiFiP2pDataTransfer.STRING_DATA){
-                    DataInputStream stream = new DataInputStream(inputstream);
-                    String data = stream.readUTF();
+                                Log.d(DEBUG_LOG, data + "|" + "from" + client.getInetAddress().getHostAddress() + "|" + System.currentTimeMillis());
 
-                    Log.d(DEBUG_LOG, data+"|"+System.currentTimeMillis());
+                                if (data.startsWith("REQUESTBATTERY:")) {
+                                    String ip = client.getInetAddress().getHostAddress();
+                                    int batLevel = getBatteryPercentage(context);
+                                    String bat = Integer.toString(batLevel);
+                                    bat = "REPLYBATTERY:" + bat;
+                                    sendStringTo(bat, ip);
+                                } else if (data.startsWith("REPLYBATTERY:")) {
 
-                    if(data.startsWith("REQUESTBATTERY:")){
-                        String ip = client.getInetAddress().getHostAddress();
-                        int batLevel = getBatteryPercentage(context);
-                        String bat = Integer.toString(batLevel);
-                        bat = "REPLYBATTERY:"+bat;
-                        sendStringTo(bat,ip);
-                    }else if(data.startsWith("REPLYBATTERY:")){
+                                    String ip = client.getInetAddress().getHostAddress();
+                                    Integer batt = Integer.valueOf(data.replace("REPLYBATTERY:", ""));
+                                    ipbatt.put(ip, batt);
+                                    if (ipbatt.size() == peerInfo.size()) {
+                                        determineWinner();
+                                    }
+                                } else if (data.startsWith("BATTERYRESULT:")) {
+                                    final String msg = data.replace("BATTERYRESULT:", "");
+                                    activity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                } else if (data.startsWith("REPLYFILE:")) {
+                                    Log.d(MainMenu.EXPERIMENT_LOG, data + "|" + System.currentTimeMillis());
+                                    file.add(client.getInetAddress().getHostAddress());
+                                    if (file.size() == peerInfo.size()) {
+                                        Log.d(MainMenu.EXPERIMENT_LOG, "File Transfer Time: " + (System.currentTimeMillis() - fileBeginTime));
+                                    }
+                                } else if (data.startsWith("REPLYFACE:")) {
+                                    String ip = client.getInetAddress().getHostAddress();
+                                    Log.d(MainMenu.EXPERIMENT_LOG,"Time: "+System.currentTimeMillis()+"&From: "+ip+"&Msg: "+data);
+                                    final String msg = data.replace("REPLYFACE:", "");
+                                    activity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            StringTokenizer st = new StringTokenizer(msg, "|||");
+                                            ArrayList<PointF> leftUp = new ArrayList<>();
+                                            ArrayList<PointF> rightDown = new ArrayList<>();
+                                            int num = 0;
+                                            while (st.hasMoreTokens()) {
+                                                num++;
+                                                String it = st.nextToken();
+                                                float x = 0, y = 0, eyeDistance = 0;
+                                                StringTokenizer st2 = new StringTokenizer(it, ";");
+                                                while (st2.hasMoreTokens()) {
+                                                    String field = st2.nextToken();
+                                                    if (field.startsWith("x:")) {
+                                                        x = Float.valueOf(field.replace("x:", ""));
+                                                    } else if (field.startsWith("y:")) {
+                                                        y = Float.valueOf(field.replace("y:", ""));
+                                                    } else if (field.startsWith("eyeDistance:")) {
+                                                        eyeDistance = Float.valueOf(field.replace("eyeDistance:", ""));
+                                                    }
+                                                }
+                                                leftUp.add(new PointF(x - eyeDistance, y - eyeDistance));
+                                                rightDown.add(new PointF(x + eyeDistance, y + eyeDistance));
+                                            }
+                                            ImageView iv = (ImageView) activity.findViewById(R.id.face_image);
+                                            PointF[] lu = new PointF[num];
+                                            PointF[] rd = new PointF[num];
+                                            for (int i = 0; i < num; ++i) {
+                                                lu[i] = new PointF(leftUp.get(i).x, leftUp.get(i).y);
+                                                rd[i] = new PointF(rightDown.get(i).x, rightDown.get(i).y);
+                                            }
+                                            imagevieweffecthelper.highlightFaces(iv, lu, rd, num);
+                                            //Log.d(MainMenu.EXPERIMENT_LOG, "Offloading Face Detection Time: " + (System.currentTimeMillis() - offloadingFaceDetectionBeginTime));
+                                        }
+                                    });
+                                } else if (data.startsWith("pingpong:")) {
+                                    String ip = client.getInetAddress().getHostAddress();
+                                    String msg = data.replace("pingpong:","");
+                                    Integer t = Integer.valueOf(msg);
+                                    safe=false;
+                                    Integer a = pingpongmap.get(ip);
+                                    safe=true;
+                                    if(a==null){
 
-                        String ip = client.getInetAddress().getHostAddress();
-                        Integer batt = Integer.valueOf(data.replace("REPLYBATTERY:",""));
-                        ipbatt.put(ip,batt);
-                        if(ipbatt.size()==peerInfo.size()){
-                            determineWinner();
-                        }
-                    }else if(data.startsWith("BATTERYRESULT:")) {
-                        final String msg = data.replace("BATTERYRESULT:","");
-                        activity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(context,msg,Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    }else if(data.startsWith("REPLYFILE:")){
-                        Log.d(MainMenu.EXPERIMENT_LOG, data+"|"+System.currentTimeMillis());
-                        file.add(client.getInetAddress().getHostAddress());
-                        if(file.size()==peerInfo.size()){
-                            Log.d(MainMenu.EXPERIMENT_LOG,"File Transfer Time: "+(System.currentTimeMillis()-fileBeginTime));
-                        }
-                    }else if(data.startsWith("REPLYFACE:")){
-                        final String msg = data.replace("REPLYFACE:","");
-                        activity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                StringTokenizer st = new StringTokenizer(msg,"|||");
-                                ArrayList<PointF> leftUp = new ArrayList<>();
-                                ArrayList<PointF> rightDown = new ArrayList<>();
-                                int num=0;
-                                while (st.hasMoreTokens()){
-                                    num++;
-                                    String it = st.nextToken();
-                                    float x=0,y=0,eyeDistance=0;
-                                    StringTokenizer st2  = new StringTokenizer(it,";");
-                                    while (st2.hasMoreTokens()){
-                                        String field = st2.nextToken();
-                                        if(field.startsWith("x:")){
-                                            x = Float.valueOf(field.replace("x:",""));
-                                        }else if(field.startsWith("y:")){
-                                            y = Float.valueOf(field.replace("y:",""));
-                                        }else if(field.startsWith("eyeDistance:")) {
-                                            eyeDistance = Float.valueOf(field.replace("eyeDistance:",""));
+                                    }else{
+                                        if(t>a){
+                                            safe=false;
+                                            pingpongmap.put(ip,t);
+                                            pingpongtime.put(ip,(Long)System.currentTimeMillis());
+                                            safe=true;
                                         }
                                     }
-                                    leftUp.add(new PointF(x-eyeDistance,y-eyeDistance));
-                                    rightDown.add(new PointF(x+eyeDistance,y+eyeDistance));
+                                    if(pingpongtestfinish()){
+                                        safe=false;
+                                        pingpongmap.clear();
+                                        pingpongtime.clear();
+                                        doingpingpong=false;
+                                        Log.d(MainMenu.EXPERIMENT_LOG,"pingpong time: "+(System.currentTimeMillis()-pingpongBegintime));
+                                        if(pingpongtimeout!=null) {
+                                            pingpongtimeout.interrupt();
+                                            pingpongtimeout = null;
+                                        }
+                                        ableForAnotherTest=true;
+                                        safe=true;
+                                    }else{
+                                        t = t + 1;
+                                        if(t<6) {
+                                            sendStringTo("pingpong:" + t, ip);
+                                            Log.d(DEBUG_LOG, "normal: send " + msg + " to " + ip);
+                                        }
+                                    }
                                 }
-                                ImageView iv = (ImageView)activity.findViewById(R.id.face_image);
-                                PointF[] lu = new PointF[num];
-                                PointF[] rd = new PointF[num];
-                                for(int i=0;i<num;++i){
-                                    lu[i]=new PointF(leftUp.get(i).x,leftUp.get(i).y);
-                                    rd[i]=new PointF(rightDown.get(i).x,rightDown.get(i).y);
-                                }
-                                imagevieweffecthelper.highlightFaces(iv,lu,rd,num);
-                                Log.d(MainMenu.EXPERIMENT_LOG,"Offloading Face Detection Time: "+(System.currentTimeMillis()-offloadingFaceDetectionBeginTime));
+
+
+                            } else {
+                                Log.d(DEBUG_LOG, "WiFiP2pthread: unrecognized data: " + data_type[0]);
+                                Log.d(DEBUG_LOG, "FILE_DATA: " + WiFiP2pDataTransfer.FILE_DATA + " IP_DATA: " + WiFiP2pDataTransfer.IP_DATA);
+                                Log.d(DEBUG_LOG,
+                                        "If there are some problems with file transfer, check whether the phone has block the permission for read and write external storage");
                             }
-                        });
-                    }
-
-
-                }else{
-                    Log.d(DEBUG_LOG,"WiFiP2pthread: unrecognized data: "+data_type[0]);
-                    Log.d(DEBUG_LOG,"FILE_DATA: "+WiFiP2pDataTransfer.FILE_DATA+" IP_DATA: "+WiFiP2pDataTransfer.IP_DATA);
-                }
-                inputstream.close();
-                if (client.isConnected()) client.close();
-                if (!serverSocket.isClosed()) serverSocket.close();
-
-            }catch (IOException e){
-                //Log.d(DEBUG_LOG,"WiFiP2pthread: IOException");
+                            inputstream.close();
+                            if (client.isConnected()) client.close();
+                            if (!serverSocket.isClosed()) serverSocket.close();
+            } catch (IOException e) {
+                //e.printStackTrace();
             }
         }
     }
@@ -330,4 +370,86 @@ public class WiFiP2pServerThread extends Thread {
     public void setOffloadingFaceDetectionBeginTime(long t){
         offloadingFaceDetectionBeginTime=t;
     }
+
+    HashMap<String,Long> pingpongtime = new HashMap<>();
+    HashMap<String,Integer> pingpongmap = new HashMap<>();
+    long pingpongBegintime;
+    public void beginPingpong(long t){
+        if(!ableForAnotherTest)return;
+        ableForAnotherTest=false;
+        doingpingpong=true;
+        pingpongBegintime=t;
+        pingpongmap.clear();
+        pingpongtime.clear();
+        ArrayList<String> ips = peerInfo.getAllIP();
+        for(int i=0;i<ips.size();++i){
+            pingpongmap.put(ips.get(i),-1);
+            pingpongtime.put(ips.get(i),t);
+        }
+        sendString("pingpong:0");
+        pingpongtimeout = new Thread(new Runnable() {
+            int timeouttimes = 0;
+            @Override
+            public void run() {
+                while (doingpingpong){
+                    try {
+                        if (safe) {
+                            long t = System.currentTimeMillis();
+                            Set<Map.Entry<String, Long>> entryset = pingpongtime.entrySet();
+                            for (Map.Entry entry : entryset) {
+                                String ip = (String) entry.getKey();
+                                Long a = (Long) entry.getValue();
+                                //Log.d(DEBUG_LOG,"time interval: "+(t-a)+" "+ip);
+                                if ((t - a) > timeout) {
+                                    Integer msg = (Integer) pingpongmap.get(ip);
+                                    if (msg != null) {
+                                        msg = msg + 1;
+                                        if (msg < 6) {
+                                            sendStringTo("pingpong:" + msg, ip);
+                                            pingpongtime.put(ip,(Long)System.currentTimeMillis());
+                                            //Log.d(DEBUG_LOG, "timeout: send " + msg + " to " + ip);
+                                            timeouttimes++;
+                                            if(timeouttimes>50){
+                                                doingpingpong=false;
+                                                ableForAnotherTest=true;
+                                            }
+                                        }
+                                    }
+                                    //Log.d(DEBUG_LOG,"timeout happened!!! "+ip);
+                                }
+                            }
+                        }
+                    }catch (ConcurrentModificationException e){
+
+                    }
+                }
+            }
+        });
+        pingpongtimeout.start();
+    }
+    public boolean pingpongtestfinish(){
+        safe=false;
+        boolean s = true;
+        Set<Map.Entry<String,Integer>> entryset = pingpongmap.entrySet();
+        if(entryset!=null) {
+            for (Map.Entry entry : entryset) {
+                Integer a = (Integer) entry.getValue();
+                if (a != null) {
+                    a=a+1;
+                    if (a < 6) {
+                        s = false;
+                        break;
+                    }
+                } else s = false;
+            }
+            if (entryset.size() == 0) s = false;
+        }else s=false;
+        safe=true;
+        return s;
+    }
+    boolean doingpingpong = false;
+    long timeout = 1000;
+    Thread pingpongtimeout=null;
+    boolean ableForAnotherTest = true;
+    boolean safe=true;
 }

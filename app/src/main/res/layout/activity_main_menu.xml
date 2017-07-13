@@ -86,7 +86,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/test_btn1"
-            android:text="test_battery"
+            android:text="experiment"
             android:layout_alignParentRight="true"/>
         <Button
             android:layout_width="wrap_content"
@@ -94,7 +94,8 @@
             android:id="@+id/test_btn2"
             android:text="test_file"
             android:layout_alignParentRight="true"
-            android:layout_below="@id/test_btn1"/>
+            android:layout_below="@id/test_btn1"
+            android:visibility="gone"/>
     </RelativeLayout>
 
     <RelativeLayout

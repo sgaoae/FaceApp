@@ -36,6 +36,9 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
     AppCompatActivity activity;
     public ConnectedPeerInfo peerInfo;
 
+    long scanBeginTime;
+    public void setScanBeginTime(long t){scanBeginTime=t;}
+
     public WiFiP2pListener
             (WifiP2pManager manager,
                     WifiP2pManager.Channel channel,
@@ -73,7 +76,7 @@ public class WiFiP2pListener implements WifiP2pManager.PeerListListener,WifiP2pM
                 new String[]{"name", "status"}, new int[]{R.id.peer_name, R.id.peer_status});
         list_view.setAdapter(simpleadapter);
         String name = (String) ((TextView) activity.findViewById(R.id.device_name)).getText();
-        Log.d(MainMenu.EXPERIMENT_LOG,name+"|scan end: "+System.currentTimeMillis()+"|"+devices.size());
+        Log.d(MainMenu.EXPERIMENT_LOG,name+"|scan time: "+(System.currentTimeMillis()-scanBeginTime)+"|"+devices.size());
     }
 
     public AdapterView.OnItemClickListener getOnItemClickListener(){
